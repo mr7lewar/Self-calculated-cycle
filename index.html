@@ -152,11 +152,15 @@ const PROGRAM15 = [{"t1": [{"name": "Жим лежа", "grp": "ЖМ", "kind": "m
 const GROWTH = 0.005;
 const GRP_COLOR = {'ПР':'#d8453a','ЖМ':'#5b8bd0','ТГ':'#e3a23a','ЗФП':'#52a575',
                     'РУКИ':'#9b7fd0','СПИНА':'#52a575','ПЛЕЧІ':'#e3a23a','КОР':'#878f9b','НОГИ*':'#d8453a','КАРДІО':'#5b8bd0'};
-const KEY14='src14_state_v1', KEY15='src15_state_v1';
+const KEY14='src14_state_v1', KEY15='src15_state_v1', KEYVIEW='view_state_v1';
 
 let curProgram = localStorage.getItem('active_program') || 'p14';
-let view14 = 'overview';
-let view15 = 0;
+/* відкрита вкладка переживає перезавантаження (телефон вивантажує фонові вкладки) */
+function loadView(){try{const v=JSON.parse(localStorage.getItem(KEYVIEW));if(v)return v;}catch(e){}return {};}
+const savedView = loadView();
+let view14 = ['overview','0','1','2','3','4','5'].includes(savedView.v14) ? savedView.v14 : 'overview';
+let view15 = Number.isInteger(savedView.v15) && savedView.v15>=0 && savedView.v15<12 ? savedView.v15 : 0;
+function saveView(){try{localStorage.setItem(KEYVIEW, JSON.stringify({v14:view14, v15:view15}));}catch(e){}}
 
 function mround(v,step){return Math.round(v/step)*step;}
 
@@ -192,7 +196,7 @@ function render14Nav(){
   for(let i=0;i<6;i++) h+=`<button class="nb ${view14==String(i)?'active':''}" onclick="go14('${i}')">МЦ ${i+1}</button>`;
   document.getElementById('nav').innerHTML=h;
 }
-function go14(v){view14=v;window.scrollTo(0,0);render();}
+function go14(v){view14=v;saveView();window.scrollTo(0,0);render();}
 
 let curChart='sq';
 function mcProgress14(mc){
@@ -338,7 +342,7 @@ function render15Nav(){
   for(let i=0;i<12;i++) h+=`<button class="nb ${view15===i?'active':''}" onclick="go15(${i})">Тиждень ${i+1}</button>`;
   document.getElementById('nav').innerHTML=h;
 }
-function go15(v){view15=v;window.scrollTo(0,0);render();}
+function go15(v){view15=v;saveView();window.scrollTo(0,0);render();}
 function content15(){
   const mc=view15;
   const week=PROGRAM15[mc];
@@ -387,7 +391,14 @@ function render(){
     render15PM(); render15Nav();
     document.getElementById('content').innerHTML = content15();
   }
+  showActiveNav();
   bindSets();
+}
+/* на вузькому екрані активна кнопка (напр. Тиждень 12) може бути за краєм смуги */
+function showActiveNav(){
+  const nav=document.getElementById('nav'), a=nav.querySelector('.nb.active'); if(!a)return;
+  const n=nav.getBoundingClientRect(), r=a.getBoundingClientRect();
+  if(r.left<n.left||r.right>n.right) nav.scrollLeft += r.left-n.left-(n.width-r.width)/2;
 }
 function bindSets(){
   document.querySelectorAll('.setbox').forEach(b=>{
@@ -432,7 +443,7 @@ function savePM15(){
 function closeModal(){document.getElementById('overlay').classList.remove('on');}
 document.getElementById('overlay').onclick=e=>{if(e.target.id==='overlay')closeModal();};
 
-render();
+switchProgram(curProgram);
 </script>
 </body>
 </html>
